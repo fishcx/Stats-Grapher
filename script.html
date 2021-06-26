@@ -1,0 +1,366 @@
+<script>
+
+  var debugMode = false;
+
+	$(document).ready(function() {
+       
+       $(document).keypress(function (e) {
+          var key = e.which;
+          if(key == 13)  // the enter key code
+           {
+             $('#graph-button').click();
+             return false;  
+           }
+       }); 
+                     
+       $('.graph-button').click(function(){  
+
+           generateGraph($(this).val());
+
+        });
+       
+      function generateGraph(type){
+        
+          $('#alert').hide(); // hide previous alert messages (if any) 
+          if($('#numbers').val().toString().includes("fishmath")){debugMode = true;}           
+          // don't try to remove other letters besides x.  Need them for functions like abs(x)
+          var numbers = $('#numbers').val().toString();
+
+          drawPlot(numbers,"plot",type);  
+
+          $('#plot').show();
+      
+      }
+    
+    renderMathInElement(document.body);
+	});
+      
+    function drawPlot(dataValues,plot,type) {
+    
+    try {
+      
+      // make grid smaller for mobile
+      var gridsize;
+      var indent;
+      var markerSize;
+      var numXTicks;
+      
+      if(window.innerWidth > 601){
+         gridsize = 550;
+         indent = 20;
+         markerSize = 15;
+         numXTicks = 20;
+
+      }else{
+         gridsize = 350;
+         indent = 0;
+         markerSize = 10;
+         numXTicks = 15;
+      }
+
+      var data = [];
+      
+      // remove all characters except for digits, neg signs, periods, or commas
+      var numberData = dataValues.replace(/[^0-9.,-]+/g, '');
+
+      //  remove duplicate, leading, and ending commas
+      numberData = numberData.replace(/,+/g, ',').replace(/^,/, '').replace(/,\s*$/, '');
+
+      var values = numberData.split(",");
+
+      // sort the data in the text area.
+      $('#numbers').val(values.sort(function(a,b){  return a - b  }).toString());
+
+      // count the frequencies of each number
+      var counts = {};
+
+      for (var i = 0; i < values.length; i++) {
+          if(values[i] != ""){
+            var num = parseFloat(values[i]);
+            values[i]=num;
+            counts[num] = counts[num] ? counts[num] + 1 : 1;
+          }
+      }
+      
+      // using keys() function to get rid of repeats
+      // by default, array.sort() function does not sort numerically. Use this function to do that instead
+      var sortedData = Object.keys(counts).sort(function(a,b){  return a - b  });
+         
+      var xValues = [];
+      var yValues = [];
+
+      var yScaleFactor = 0.6;
+      var yOriginal = 0.5;
+      var maxFreq = 0; 
+      
+      for (var i = 0; i < sortedData.length; i ++){
+         
+          var currentX = sortedData[i];
+          var freq = counts[currentX];
+          if( maxFreq < freq ){ maxFreq = freq; }
+
+          // produce multiple coordinates here at the same x based on the freq of that item
+          for(var j = 0; j < freq; j++){
+              
+              xValues.push(currentX);
+              yValues.push(yScaleFactor*j+yOriginal);
+
+          }
+
+      }
+      
+      var max = Math.ceil(Math.max(...sortedData)); 
+      var min = Math.floor(Math.min(...sortedData));
+
+      if((max-min)>1000){
+        numXTicks = 5;
+        markerSize = markerSize*.5; 
+      }
+      else if((max-min)>100){
+        numXTicks = 10;
+        markerSize = markerSize*.75;  
+      }
+
+      var labelScaleFactor = 1; // number to count by
+
+      if((max-min) > numXTicks){
+        labelScaleFactor = Math.ceil((max-min)/numXTicks);
+      }
+
+      // reset the max and min to go one above and one below data but count by the labelScaleFactor (and thus include 0)
+      if(min > 0) {    min = Math.ceil(min/labelScaleFactor)*labelScaleFactor; }
+      else{            min = Math.floor(min/labelScaleFactor)*labelScaleFactor;}
+      
+      if(max > 0) {    max = Math.ceil(max/labelScaleFactor)*labelScaleFactor; }
+      else{            max = Math.floor(max/labelScaleFactor)*labelScaleFactor;}
+
+      var x_axis_template ={
+        showgrid: false,
+        zeroline: false,
+        range: [min-1*labelScaleFactor,max+1*labelScaleFactor],
+        showticklabels:false
+      };  
+
+      // data for box plot but put it here so that it can show in the debug for any plot
+      var boxPlotData = calcMedian(values);
+      var bottomYCoord = 1;
+      var topYCoord = 3;
+      var middleYCoord = (topYCoord+bottomYCoord)/2;
+      var boxMax = Math.max(...sortedData);
+      var boxMin = Math.min(...sortedData);
+
+//////////// Dot Plot ////////////
+    if(type == "Dot Plot"){
+        
+        var trace = {
+          x: xValues,
+          y: yValues,
+          type: 'scatter',
+          mode: 'markers',        
+          marker: {
+            size: markerSize,
+            color: "#3F4591",
+          },
+          name:"",
+        };         
+        
+        var minYRange = maxFreq*yScaleFactor-15;
+        if(maxFreq>20){minYRange = -2;}
+        var y_axis_template ={
+          showgrid: false,
+          zeroline: true,
+          nTicks: 12,
+          range: [minYRange, maxFreq*yScaleFactor+1],
+          zerolinecolor: 'black', // axes color
+          zerolinewidth: 1.5, // axes widths
+          showticklabels:false
+        };
+    }
+//////////// End Dot Plot, begin Box Plot ////////////
+    else{
+        
+        var trace = {
+          x: [boxMin,boxMin,boxMin,boxPlotData.q1,boxPlotData.q1,boxPlotData.median,boxPlotData.median,boxPlotData.q1,boxPlotData.q1,boxPlotData.q3,boxPlotData.q3,boxPlotData.median,boxPlotData.q3,boxPlotData.q3,boxMax,boxMax,boxMax],
+          y: [bottomYCoord,topYCoord,middleYCoord,middleYCoord,topYCoord,topYCoord,bottomYCoord,bottomYCoord,topYCoord,topYCoord,bottomYCoord,bottomYCoord,bottomYCoord,middleYCoord,middleYCoord,bottomYCoord,topYCoord],
+          type: 'scatter',
+          mode: 'lines',        
+          line: {
+            width: 2.5,
+            color: "#3F4591",
+           },       
+          name:"",
+        };   
+            
+        var y_axis_template ={
+          showgrid: false,
+          zeroline: true,
+          nTicks: 12,
+          range: [-8, 4],
+          zerolinecolor: 'black', // axes color
+          zerolinewidth: 1.5, // axes widths
+          showticklabels:false
+        };
+
+    }
+//////////// End Box Plot ////////////      
+      var xLocArray = [];
+      var yLocArray = [];
+      var labels = [];
+      
+      for (var i = min; i < max+labelScaleFactor; i=i+(labelScaleFactor)){
+
+          xLocArray.push(i);
+          yLocArray.push(-0.1);
+          labels.push(i.toString());
+      }
+      
+      var xTickMarkLabels =   {
+        x: xLocArray,
+        y: yLocArray,
+        mode: 'text',
+        text: labels,
+        textposition:"bottom",
+        textfont: {
+          size:13,
+        },
+        hoverinfo:'none'
+      };   
+            
+      var layout = {
+        xaxis: x_axis_template,
+        yaxis: y_axis_template,
+        showlegend: false,
+        width: gridsize,
+        height: gridsize,
+        hovermode: false,   
+        font:{size: 18},
+        margin: {l: indent,  r: 30, t: 20}
+      };
+      
+      layout.annotations= [
+       {
+         x: max+1*labelScaleFactor,
+         y: 0,
+         showarrow: true,
+         arrowsize:2,
+         arrowwidth:1,
+         arrowhead:3,
+         ax: -35,
+         ay: 0
+       },
+       {
+         x: min-1*labelScaleFactor,
+         y: 0,
+         showarrow: true,
+         arrowsize:2,
+         arrowwidth:1,
+         arrowhead:3,
+         ax: 35,
+         ay: 0
+       }
+
+     ];
+      
+      data.push(trace,xTickMarkLabels);
+
+      Plotly.newPlot(plot, data, layout,{displayModeBar: false});
+
+  ////// DEBUG DIV ///////
+  if(debugMode){
+    var statData = "";
+
+    statData += "<b>Min:</b> "+boxMin+", <b>Q1:</b> "+boxPlotData.q1+", <b>Median:</b> "+boxPlotData.median+", <b>Q3:</b> "+boxPlotData.q3+", <b>Max:</b> "+boxMax;
+
+    // Mean and Mad
+    var meanAndMad = calcMean(values);
+    
+    statData += "<br><br><b>Mean:</b>"+meanAndMad.mean+", <b>MAD:</b>"+meanAndMad.mad;
+
+    // Range & IQR
+    statData += "<br><br><b>Range:</b>"+(boxMax-boxMin)+", <b>IQR:</b>"+(boxPlotData.q3-boxPlotData.q1);
+
+    $("#debugDiv").html(statData);
+  }else{
+    $("#debugDiv").html("");
+  }
+      
+    }
+    catch (err) {
+      console.error(err)
+      $("#alert").html("Please enter only data values separated by commas");
+      $("#alert").show();
+    }
+  }
+
+  function calcMean(array){
+
+    // Mean
+    var sum = 0;
+    for(var i = 0; i < array.length; i ++){
+      sum = sum + array[i];  
+    }
+    
+    var average = Math.round(100*sum/array.length)/100; //mean rounded to the nearest hundredth
+
+    // MAD
+    var c = 0; //difference from the mean sum
+    for(var i = 0; i < array.length; i++){
+           
+      c += Math.abs(array[i]-average);
+           
+    }
+    var mad = Math.round(((c/10)+0.000000000001)*1000000)/1000000; // MAD
+
+    return {mean: average, mad:mad}  
+  
+  }
+
+  function calcMedian(array){
+
+      var size = array.length;
+      var orderedVals = array.sort(function(a,b){  return a - b  });
+      
+      var median, q1, q3, half, quarter;
+           // even number of values
+           if((size % 2) == 0){
+                         
+              half = size/2;
+              median = (orderedVals[half-1]+orderedVals[half])/2;
+              if((half % 2) == 0){
+
+                 quarter = half/2;
+                 q1 = (orderedVals[quarter-1]+orderedVals[quarter])/2; 
+                 q3 = (orderedVals[quarter+half-1]+orderedVals[quarter+half])/2;
+              
+              } else{
+                 
+                 quarter = Math.floor(half/2)+1;
+                 q1 = orderedVals[quarter-1];
+                 q3 = orderedVals[quarter+half-1];
+              
+              }
+           } 
+           // odd number of values
+           else{
+              
+              half = Math.floor(size/2);
+              median = orderedVals[half];
+              
+              if((half % 2) == 0){
+
+                 quarter = half/2;
+                 q1 = (orderedVals[quarter-1]+orderedVals[quarter])/2;
+                 q3 = (orderedVals[quarter+half]+orderedVals[quarter+half+1])/2;
+              
+              } else{
+                 
+                 quarter = Math.floor(half/2)+1;
+                 q1 = orderedVals[quarter-1];
+                 q3 = orderedVals[quarter+half];
+              
+              }
+           }
+      return {median: median, q1: q1, q3:q3}
+  }
+  
+</script>
