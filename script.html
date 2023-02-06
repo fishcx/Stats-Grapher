@@ -3,12 +3,16 @@
   var debugMode = false;
 
 	$(document).ready(function() {
-       
+      
+    /* 
+    // hide custom scale options initially
+    $("#customScale").hide();
+   */
        $(document).keypress(function (e) {
           var key = e.which;
           if(key == 13)  // the enter key code
            {
-             $('#graph-button').click();
+             $('#dot-plot-button').click();
              return false;  
            }
        }); 
@@ -36,7 +40,7 @@
 	});
       
     function drawPlot(dataValues,plot,type) {
-    
+
     try {
       
       // make grid smaller for mobile
@@ -108,9 +112,25 @@
           }
 
       }
-      
-      var max = Math.ceil(Math.max(...sortedData)); 
-      var min = Math.floor(Math.min(...sortedData));
+    /*
+    var max, min, labelScaleFactor;
+    
+    // for custom scale
+    var stInput = $("#start").val();
+    var enInput = $("#end").val();
+    var scInput = $("#scale").val();
+    
+    if(enInput > stInput && scInput < (enInput-stInput)){
+        max = enInput;
+        min = stInput;
+        labelScaleFactor = scInput;
+ 
+    }
+    
+    else{
+      */
+      max = Math.ceil(Math.max(...sortedData)); 
+      min = Math.floor(Math.min(...sortedData));
 
       if((max-min)>1000){
         numXTicks = 5;
@@ -134,13 +154,14 @@
       if(max > 0) {    max = Math.ceil(max/labelScaleFactor)*labelScaleFactor; }
       else{            max = Math.floor(max/labelScaleFactor)*labelScaleFactor;}
 
+    //}
+    
       var x_axis_template ={
         showgrid: false,
         zeroline: false,
         range: [min-1*labelScaleFactor,max+1*labelScaleFactor],
         showticklabels:false
       };  
-
       // data for box plot but put it here so that it can show in the debug for any plot
       var boxPlotData = calcMedian(values);
       var bottomYCoord = 1;
@@ -163,7 +184,6 @@
           },
           name:"",
         };         
-        
         var minYRange = maxFreq*yScaleFactor-15;
         if(maxFreq>20){minYRange = -2;}
         var y_axis_template ={
@@ -206,14 +226,14 @@
       var xLocArray = [];
       var yLocArray = [];
       var labels = [];
-      
+      // create the labels for the x-axis.  First and last label don't fit
       for (var i = min; i < max+labelScaleFactor; i=i+(labelScaleFactor)){
-
+          
           xLocArray.push(i);
           yLocArray.push(-0.1);
           labels.push(i.toString());
       }
-      
+
       var xTickMarkLabels =   {
         x: xLocArray,
         y: yLocArray,
@@ -262,28 +282,51 @@
      ];
       
       data.push(trace,xTickMarkLabels);
-
+    
       Plotly.newPlot(plot, data, layout,{displayModeBar: false});
 
+      var halfWidth = Math.floor((max+labelScaleFactor-(min-labelScaleFactor))/2);
+
+      $("#start").val(min);
+      $("#start").attr({
+        "max" : min-1*labelScaleFactor //can't go higher than the current lowest value
+      });
+      $("#end").val(max);
+      $("#end").attr({
+        "min" : max+1*labelScaleFactor //can't go lower than the current highest value
+      });
+      $("#scale").val(labelScaleFactor);
+      $("#scale").attr({
+        "max" :  halfWidth, //can't have a smaller scale than half the width of the dotplot
+        "min" : 1 // can't have a 0 or negative scale
+      });
+      $("#customScale").show();
+
   ////// DEBUG DIV ///////
+
+  var statData = "";
+  
   if(debugMode){
-    var statData = "";
 
     statData += "<b>Min:</b> "+boxMin+", <b>Q1:</b> "+boxPlotData.q1+", <b>Median:</b> "+boxPlotData.median+", <b>Q3:</b> "+boxPlotData.q3+", <b>Max:</b> "+boxMax;
 
-    // Mean and Mad
     var meanAndMad = calcMean(values);
-    
-    statData += "<br><br><b>Mean:</b>"+meanAndMad.mean+", <b>MAD:</b>"+meanAndMad.mad;
-
     // Range & IQR
-    statData += "<br><br><b>Range:</b>"+(boxMax-boxMin)+", <b>IQR:</b>"+(boxPlotData.q3-boxPlotData.q1);
+    statData += "<br><b>Range:</b> "+(boxMax-boxMin)+", <b>IQR:</b> "+(boxPlotData.q3-boxPlotData.q1);
 
+    // Mean & Median
+    statData += "<br><b>Mean:</b> "+meanAndMad.mean+", <b>Median:</b> "+boxPlotData.median;
+    
     $("#debugDiv").html(statData);
-  }else{
-    $("#debugDiv").html("");
+
   }
-      
+  else{
+    
+    $("#debugDiv").html("");
+
+  }
+
+    
     }
     catch (err) {
       console.error(err)
