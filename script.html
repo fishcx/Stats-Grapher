@@ -314,8 +314,8 @@
     // Range & IQR
     statData += "<br><b>Range:</b> "+(boxMax-boxMin)+", <b>IQR:</b> "+(boxPlotData.q3-boxPlotData.q1);
 
-    // Mean & Median
-    statData += "<br><b>Mean:</b> "+meanAndMad.mean+", <b>Median:</b> "+boxPlotData.median;
+    // Mean
+    statData += "<br><b>Mean:</b> "+meanAndMad.mean;
     
     $("#debugDiv").html(statData);
 
