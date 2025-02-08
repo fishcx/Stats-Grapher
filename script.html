@@ -314,7 +314,7 @@
 
     var meanAndMad = calcMean(values);
     // Range & IQR
-    statData += "<br><b>Range:</b> "+(boxMax-boxMin)+", <b>IQR:</b> "+(boxPlotData.q3-boxPlotData.q1);
+    statData += "<br><b>Range:</b> "+formatDec(boxMax-boxMin)+", <b>IQR:</b> "+formatDec(boxPlotData.q3-boxPlotData.q1);
 
     // Mean
     statData += "<br><b>Mean:</b> "+meanAndMad.mean;
@@ -345,7 +345,7 @@
       sum = sum + array[i];  
     }
     
-    var average = Math.round(100*sum/array.length)/100; //mean rounded to the nearest hundredth
+    var average = formatDec(Math.round(100*sum/array.length)/100); //mean rounded to the nearest hundredth
 
     // MAD
     var c = 0; //difference from the mean sum
@@ -370,12 +370,12 @@
            if((size % 2) == 0){
                          
               half = size/2;
-              median = (orderedVals[half-1]+orderedVals[half])/2;
+              median = formatDec((orderedVals[half-1]+orderedVals[half])/2);
               if((half % 2) == 0){
 
                  quarter = half/2;
-                 q1 = (orderedVals[quarter-1]+orderedVals[quarter])/2; 
-                 q3 = (orderedVals[quarter+half-1]+orderedVals[quarter+half])/2;
+                 q1 = formatDec((orderedVals[quarter-1]+orderedVals[quarter])/2); 
+                 q3 = formatDec((orderedVals[quarter+half-1]+orderedVals[quarter+half])/2);
               
               } else{
                  
@@ -394,8 +394,8 @@
               if((half % 2) == 0){
 
                  quarter = half/2;
-                 q1 = (orderedVals[quarter-1]+orderedVals[quarter])/2;
-                 q3 = (orderedVals[quarter+half]+orderedVals[quarter+half+1])/2;
+                 q1 = formatDec((orderedVals[quarter-1]+orderedVals[quarter])/2);
+                 q3 = formatDec((orderedVals[quarter+half]+orderedVals[quarter+half+1])/2);
               
               } else{
                  
