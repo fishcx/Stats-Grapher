@@ -162,7 +162,7 @@
         showgrid: false,
         zeroline: false,
         range: [min-1*labelScaleFactor,max+1*labelScaleFactor],
-        showticklabels:false
+        showticklabels:false,
       };  
       // data for box plot but put it here so that it can show in the debug for any plot
       var boxPlotData = calcMedian(values);
@@ -236,6 +236,39 @@
           labels.push(i.toString());
       }
 
+      var xTicks = [];
+      var yTicks = [];
+
+      // tick lengths
+      var xAxisTickSize = 0.11;
+
+      // locations for tick lines on x-axis
+      for( var i = 0; i < xLocArray.length; i++)
+      {
+          xTicks.push(xLocArray[i]);
+          xTicks.push(xLocArray[i]);
+          xTicks.push(xLocArray[i]);
+          xTicks.push(xLocArray[i]);
+
+          yTicks.push(0);
+          yTicks.push(-1*xAxisTickSize);
+          yTicks.push(xAxisTickSize);
+          yTicks.push(0);
+      }
+
+      // axis tick marks
+      var axisTickMarksTrace = {
+          x: xTicks,
+          y: yTicks,
+          type: 'scatter',
+          mode: 'lines',        
+          line: {
+            width: 1,
+            color: "black",
+           },       
+          name:"",
+        };
+
       var xTickMarkLabels =   {
         x: xLocArray,
         y: yLocArray,
@@ -283,7 +316,7 @@
 
      ];
       
-      data.push(trace,xTickMarkLabels);
+      data.push(trace,axisTickMarksTrace,xTickMarkLabels);
     
       Plotly.newPlot(plot, data, layout,{displayModeBar: false});
 
